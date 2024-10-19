@@ -2,29 +2,62 @@ name: CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - main
   pull_request:
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
-  build:
+  main:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
+    permissions:
+      packages: write
+      contents: write
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Setup git
+        id: git
+        uses: ./.github/actions/setup-git
 
-    - name: Build
-      run: |
-        npm ci
-        npm run lint
-        npm run build
-        npm run test
-        npm run format-check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - run: npx nx affected -t lint test build format-check
+
+      - name: Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          THDK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ steps.git.outputs.branch-name }}" == "main" ]]; then
+            npx nx release --skip-publish --verbose
+          else
+            npx nx release version --preid ${{ steps.git.outputs.commit-sha-short }} --no-git-commit --no-git-tag --verbose
+          fi
+
+      - name: Push version bumps, tags and changelogs
+        if: ${{ steps.git.outputs.branch-name == 'main' }}
+        run: |
+          git push
+          git push --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish
+        run: |
+          npx nx release publish --yes --verbose
+        env:
+          THDK_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
