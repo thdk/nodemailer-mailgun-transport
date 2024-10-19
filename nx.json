@@ -1,0 +1,64 @@
+{
+    "defaultBase": "main",
+    "release": {
+        "projects": ["nodemailer-mailgun-transport"],
+        "releaseTagPattern": "{projectName}@{version}",
+        "projectsRelationship": "independent",
+        "conventionalCommits": {
+            "types": {
+                "fix": {
+                    "semverBump": "patch",
+                    "changelog": {
+                        "title": "Bug Fixes"
+                    }
+                },
+                "feat": {
+                    "semverBump": "minor",
+                    "changelog": {
+                        "title": "New Features"
+                    }
+                },
+                "docs": {
+                    "semverBump": "patch",
+                    "changelog": {
+                        "title": "Documentation Updates"
+                    }
+                },
+                "build": {
+                    "semverBump": "minor",
+                    "changelog": {
+                        "title": "Other Updates"
+                    }
+                },
+                "chore": {
+                    "semverBump": "none",
+                    "changelog": false
+                },
+                "style": {
+                    "semverBump": "patch",
+                    "changelog": false
+                }
+            }
+        },
+        "version": {
+            "preVersionCommand": "npx nx run-many --target build test lint format-check",
+            "conventionalCommits": true,
+            "generatorOptions": {
+                "skipLockFileUpdate": true,
+                "updateDependents": "auto",
+                "fallbackCurrentVersionResolver": "disk",
+                "packageRoot": "dist/{projectRoot}"
+            }
+        },
+        "changelog": {
+            "automaticFromRef": true,
+            "projectChangelogs": {
+                "renderOptions": {
+                    "authors": true,
+                    "commitReferences": true,
+                    "versionTitleDate": true
+                }
+            }
+        }
+    }
+}
